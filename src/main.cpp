@@ -130,6 +130,15 @@ private:
     std::unordered_map<DeviceType, std::vector<Device>> _devices;
 };
 
+void printDeviceName(cl_device_id deviceId) {
+    size_t deviceNameSize = 0;
+    OCL_SAFE_CALL(clGetDeviceInfo(deviceId, CL_DEVICE_NAME, 0, nullptr, &deviceNameSize));
+
+    std::vector<unsigned char> deviceName(deviceNameSize, 0);
+    OCL_SAFE_CALL(clGetDeviceInfo(deviceId, CL_DEVICE_NAME, deviceNameSize, deviceName.data(), nullptr));
+    std::cout << "Device name: " << deviceName.data() << std::endl;
+}
+
 int main() {
     // Пытаемся слинковаться с символами OpenCL API в runtime (через библиотеку clew)
     if (!ocl_init())
@@ -140,6 +149,7 @@ int main() {
     // (если в списке устройств есть хоть одна видеокарта - выберите ее, если нету - выбирайте процессор)
     DeviceSelector selector;
     Device dev = selector.tryPickGPU();
+    printDeviceName(dev.deviceId);
 
 
     // TODO 2 Создайте контекст с выбранным устройством
