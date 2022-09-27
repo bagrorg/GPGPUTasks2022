@@ -31,18 +31,18 @@ void reportError(cl_int err, const std::string &filename, int line) {
 
 #define OCL_SAFE_CALL(expr) reportError(expr, __FILE__, __LINE__)
 
-enum DeviceType {
-    CPU,
-    GPU,
-    Accelerator
-};
-
 struct Device {
     cl_platform_id platformId;
     cl_device_id deviceId;
 };
 
 class DeviceSelector {
+private:
+    using DeviceType = std::string;
+    const DeviceType CPU = "CPU";
+    const DeviceType GPU = "GPU";
+    const DeviceType Accelerator = "Accelerator";
+
 public:
     DeviceSelector() {
         std::vector<cl_platform_id> platforms = getPlatforms();
@@ -64,15 +64,16 @@ public:
 
     Device tryPickGPU() {
         try {
-            return pick(DeviceType::GPU);
+            return pick(GPU);
         } catch (std::runtime_error &e) {
-            if (_devices[DeviceType::CPU].empty()) throw std::runtime_error("No CPU available");
+            if (_devices[CPU].empty()) throw std::runtime_error("No CPU available");
 
-            return _devices[DeviceType::CPU].front();
+            return _devices[CPU].front();
         }
     }
 
 private:
+
     std::vector<cl_platform_id> getPlatforms() {
         cl_uint platformsCount = 0;
         OCL_SAFE_CALL(clGetPlatformIDs(0, nullptr, &platformsCount));
@@ -113,15 +114,15 @@ private:
     std::vector<DeviceType> parseDeviceTypes(cl_device_type deviceTypes) {
         std::vector<DeviceType> deviceTypeStrings;
         if ((deviceTypes & CL_DEVICE_TYPE_CPU) != 0) {
-            deviceTypeStrings.emplace_back(DeviceType::CPU);
+            deviceTypeStrings.emplace_back(CPU);
         }
 
         if ((deviceTypes & CL_DEVICE_TYPE_GPU) != 0) {
-            deviceTypeStrings.emplace_back(DeviceType::GPU);
+            deviceTypeStrings.emplace_back(GPU);
         }
 
         if ((deviceTypes & CL_DEVICE_TYPE_ACCELERATOR) != 0) {
-            deviceTypeStrings.emplace_back(DeviceType::Accelerator);
+            deviceTypeStrings.emplace_back(Accelerator);
         }
 
         return deviceTypeStrings;
