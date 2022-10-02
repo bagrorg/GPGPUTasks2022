@@ -2,6 +2,10 @@
 #include <libutils/timer.h>
 #include <libutils/fast_random.h>
 
+#include <libgpu/shared_device_buffer.h>
+#include <libgpu/context.h>
+
+#include "cl/sum_cl.h"
 
 template<typename T>
 void raiseFail(const T &a, const T &b, std::string message, std::string filename, int line)
@@ -14,10 +18,40 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 
 #define EXPECT_THE_SAME(a, b, message) raiseFail(a, b, message, __FILE__, __LINE__)
 
+void benchGpuAlgo(const std::string kernelName, const std::vector<unsigned int> &as, size_t benchmarkingIters, unsigned int reference_sum, size_t work_group_size, size_t global_work_size) {
+    ocl::Kernel kernel(sum_kernel, sum_kernel_length, kernelName);
+    
+    bool printLog = false;
+    kernel.compile(printLog);
+
+    gpu::gpu_mem_32f array, dest;
+    unsigned int ans = 0;
+    
+    array.resizeN(as.size());
+    array.write(as.data(), as.size() * sizeof(unsigned int));
+
+    dest.resizeN(1);
+
+    timer t;
+    for (size_t i = 0; i < benchmarkingIters; i++) {
+        ans = 0;
+        dest.write(&ans, sizeof(unsigned int));
+        kernel.exec(gpu::WorkSize(work_group_size, global_work_size),
+                    dest, array, as.size());
+        dest.read(&ans, sizeof(unsigned int));
+        EXPECT_THE_SAME(reference_sum, ans, "GPU result should be consistent!");
+        t.nextLap();
+    }
+    std::cout << "GPU " + kernelName + ": " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+    std::cout << "GPU " + kernelName + ": " << (as.size()/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
+    std::cout << std::endl;
+
+}
+
 
 int main(int argc, char **argv)
 {
-    int benchmarkingIters = 10;
+    int benchmarkingIters = 100;
 
     unsigned int reference_sum = 0;
     unsigned int n = 100*1000*1000;
@@ -57,8 +91,43 @@ int main(int argc, char **argv)
         std::cout << "CPU OMP: " << (n/1000.0/1000.0) / t.lapAvg() << " millions/s" << std::endl;
     }
 
+    std::cout << "\n\n ==============================  GPU RESULTS ============================== \n\n";
+
+    gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+    gpu::Context context;
+    context.init(device.device_id_opencl);
+    context.activate();
+
+    size_t bufSize = (as.size() + 64 - 1) / 64 * 64;
+    as.resize(bufSize, 0);
+
+
     {
-        // TODO: implement on OpenCL
-        // gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+        unsigned int workGroupSize = 256;
+        unsigned int global_work_size = (as.size() + workGroupSize - 1) / workGroupSize * workGroupSize;
+
+        benchGpuAlgo("sum_global", as, benchmarkingIters, reference_sum, workGroupSize, global_work_size);
+    }
+    {
+        size_t count_of_elements_per_thread = 32;
+        unsigned int workGroupSize = 256;
+        unsigned int global_work_size = (as.size() + workGroupSize - 1) / workGroupSize * workGroupSize;
+        global_work_size /= count_of_elements_per_thread;
+
+        benchGpuAlgo("sum_loop", as, benchmarkingIters, reference_sum, workGroupSize, global_work_size);
+    }
+    {
+        size_t count_of_elements_per_thread = 32;
+        unsigned int workGroupSize = 256;
+        unsigned int global_work_size = (as.size() + workGroupSize - 1) / workGroupSize * workGroupSize;
+        global_work_size /= count_of_elements_per_thread;
+        
+        benchGpuAlgo("sum_loop_coalesced", as, benchmarkingIters, reference_sum, workGroupSize, global_work_size);
+    }
+    {   
+        unsigned int workGroupSize = 256;
+        unsigned int global_work_size = (as.size() + workGroupSize - 1) / workGroupSize * workGroupSize;
+
+        benchGpuAlgo("sum_local", as, benchmarkingIters, reference_sum, workGroupSize, global_work_size);
     }
 }
