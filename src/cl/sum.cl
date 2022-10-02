@@ -7,13 +7,11 @@
 __kernel void sum_global(__global unsigned int* dest, __global const unsigned int *array, unsigned int n) {
     unsigned int id = get_global_id(0);
 
-    if (id >= n) return;
-
     atomic_add(dest, array[id]);
 }
 
 
-#define SUM_LOOP_ENTRIES_PER_THREAD 32
+#define SUM_LOOP_ENTRIES_PER_THREAD 64
 __kernel void sum_loop(__global unsigned int* dest, __global const unsigned int *array, unsigned int n) {
     unsigned int id = get_global_id(0);
 
@@ -25,7 +23,7 @@ __kernel void sum_loop(__global unsigned int* dest, __global const unsigned int 
     atomic_add(dest, sum);
 }
 
-#define SUM_LOOP_C_ENTRIES_PER_THREAD 32
+#define SUM_LOOP_C_ENTRIES_PER_THREAD 64
 __kernel void sum_loop_coalesced(__global unsigned int* dest, __global const unsigned int *array, unsigned int n) {
     unsigned int group_size = get_local_size(0);
     unsigned int group_id = get_group_id(0);
@@ -63,3 +61,27 @@ __kernel void sum_local(__global unsigned int* dest, __global const unsigned int
     }
 }
 
+__kernel void sum_local_tree(__global unsigned int* dest, __global const unsigned int *array, unsigned int n) {
+    unsigned int group_size = get_local_size(0);
+    unsigned int local_id = get_local_id(0);
+    unsigned int global_id = get_global_id(0);
+
+    __local unsigned int local_data[WORK_GROUP_SIZE];
+    local_data[local_id] = array[global_id];
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+    
+    for (unsigned int level = WORK_GROUP_SIZE; level > 1; level /= 2) {
+        if (2 * local_id < level) {
+            unsigned int a = local_data[local_id];
+            unsigned int b = local_data[local_id + level / 2];
+            local_data[local_id] = a + b;
+        }
+
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+
+    if (local_id == 0) {
+        atomic_add(dest, local_data[0]);
+    }
+}

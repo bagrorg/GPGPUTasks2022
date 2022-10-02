@@ -12,8 +12,6 @@ __kernel void mandelbrot(__global float *gpu_image, unsigned int width, unsigned
     // грубо говоря, при anti-aliasing уровня N вам нужно рассчитать не одно значение в центре пикселя, а N*N значений
     // в узлах регулярной решетки внутри пикселя, а затем посчитав среднее значение результатов - взять его за результат для всего пикселя
     // это увеличит число операций в N*N раз, поэтому при рассчетах гигаплопс антиальясинг должен быть выключен
-    int N = 3;
-
     const float threshold = 256.0f;
     const float threshold2 = threshold * threshold;
 
@@ -49,6 +47,8 @@ __kernel void mandelbrot(__global float *gpu_image, unsigned int width, unsigned
     barrier(CLK_GLOBAL_MEM_FENCE);
 
     if (aliasing == 1) {
+        int N = 3;
+        
         result = 0;
         unsigned int cnt = 0;
 

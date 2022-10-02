@@ -55,15 +55,14 @@ int main(int argc, char **argv) {
 
   unsigned int benchmarkingIters = 10;
 
-  float scale = 100.0;
 
-  unsigned int width = 3840;
-  unsigned int height = 2160;
+  unsigned int width = 2048;
+  unsigned int height = 2048;
   unsigned int iterationsLimit = 256;
 
   float centralX = -0.789136f;
   float centralY = -0.150316f;
-  float sizeX = 0.00239f / scale;
+  float sizeX = 0.00239f;
 
   // Менее красивый ракурс, но в этом ракурсе виден весь фрактал:
   //    float centralX = -0.5f;
@@ -195,8 +194,8 @@ int main(int argc, char **argv) {
   // перестанет хватать Кликами мышки можно смещать ракурс Но в Pull-request эти
   // две строки должны быть закомментированы, т.к. на автоматическом
   // тестировании нет оконной подсистемы
-  bool useGPU = true;
-  renderInWindow(centralX, centralY, iterationsLimit, useGPU);
+  // bool useGPU = true;
+  // renderInWindow(centralX, centralY, iterationsLimit, useGPU);
 
   return 0;
 }
