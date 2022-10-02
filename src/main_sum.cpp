@@ -54,7 +54,7 @@ int main(int argc, char **argv)
     int benchmarkingIters = 10;
 
     unsigned int reference_sum = 0;
-    unsigned int n = 100*1000*1000;
+    unsigned int n = (100*1000*1000 + 2048 - 1) / 2048 * 2048;
     std::vector<unsigned int> as(n, 0);
     FastRandom r(42);
     for (int i = 0; i < n; ++i) {
@@ -98,10 +98,6 @@ int main(int argc, char **argv)
     context.init(device.device_id_opencl);
     context.activate();
 
-    size_t bufSize = (as.size() + 256 - 1) / 256 * 256;
-    as.resize(bufSize, 0);
-
-
     {
         unsigned int workGroupSize = 256;
         unsigned int global_work_size = (as.size() + workGroupSize - 1) / workGroupSize * workGroupSize;    // always as.size()
@@ -110,7 +106,7 @@ int main(int argc, char **argv)
     }
     {
         size_t count_of_elements_per_thread = 64;
-        unsigned int workGroupSize = 256;
+        unsigned int workGroupSize = 32;
         unsigned int global_work_size = (as.size() + workGroupSize - 1) / workGroupSize * workGroupSize;
         global_work_size /= count_of_elements_per_thread;
 
@@ -118,7 +114,7 @@ int main(int argc, char **argv)
     }
     {
         size_t count_of_elements_per_thread = 64;
-        unsigned int workGroupSize = 256;
+        unsigned int workGroupSize = 32;
         unsigned int global_work_size = (as.size() + workGroupSize - 1) / workGroupSize * workGroupSize;
         global_work_size /= count_of_elements_per_thread;
         
