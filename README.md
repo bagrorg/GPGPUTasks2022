@@ -6,6 +6,7 @@
 - [Задание 0](https://github.com/GPGPUCourse/GPGPUTasks2022/tree/task00): Вводное. (5 баллов)
 - [Задание 1](https://github.com/GPGPUCourse/GPGPUTasks2022/tree/task01): A+B. (5 баллов)
 - [Задание 2](https://github.com/GPGPUCourse/GPGPUTasks2022/tree/task02): Теоретическое задание: параллелизуемость/code divergence/memory coalesced access. (5 баллов)
+- [Задание 3](https://github.com/GPGPUCourse/GPGPUTasks2022/tree/task03): Задание 3. Фрактал Мандельброта. Сумма чисел. (10 баллов)
 
 Оценка
 ======
