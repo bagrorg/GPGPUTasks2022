@@ -98,8 +98,8 @@ int main(int argc, char **argv)
 
             t.nextLap();
         }
-        std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
-        std::cout << "GPU: " << gflops / t.lapAvg() << " GFlops" << std::endl;
+        std::cout << "GPU fma: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "GPU fma: " << gflops / t.lapAvg() << " GFlops" << std::endl;
     }
 
     std::vector<float> cs_fma(M*N, 0);
