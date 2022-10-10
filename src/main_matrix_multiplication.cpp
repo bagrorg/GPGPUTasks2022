@@ -20,8 +20,8 @@ int main(int argc, char **argv)
     context.activate();
 
     int benchmarkingIters = 10; // TODO пока тестируетесь удобно выставить единицу
-    unsigned int M = 1024;
-    unsigned int K = 1024;
+    unsigned int M = 2048;
+    unsigned int K = 512;
     unsigned int N = 1024;
     const size_t gflops = ((size_t) M * K * N * 2) / (1000 * 1000 * 1000); // умножить на два, т.к. операция сложения и умножения
 
@@ -74,8 +74,7 @@ int main(int argc, char **argv)
         timer t;
         for (int iter = 0; iter < benchmarkingIters; ++iter) {
             // TODO
-            matrix_multiplication_kernel.exec(gpu::WorkSize(16, 16, M, N), as_gpu, bs_gpu, cs_gpu, M, N, K);
-            // matrix_multiplication_kernel.exec(gpu::WorkSize(2, 2, M, N), as_gpu, bs_gpu, cs_gpu, M, N, K);
+            matrix_multiplication_kernel.exec(gpu::WorkSize(16, 16, N, M), as_gpu, bs_gpu, cs_gpu, M, N, K);
 
 
             t.nextLap();
@@ -84,16 +83,43 @@ int main(int argc, char **argv)
         std::cout << "GPU: " << gflops / t.lapAvg() << " GFlops" << std::endl;
     }
 
-    cs_gpu.readN(cs.data(), M*N);
+    ocl::Kernel matrix_multiplication_fma_kernel(matrix_multiplication, matrix_multiplication_length, "matrix_multiplication_fma");
+    matrix_multiplication_fma_kernel.compile();
+
+    size_t thread_work = 16;
+    size_t tile_size = 32;
+
+    {
+        timer t;
+        for (int iter = 0; iter < benchmarkingIters; ++iter) {
+            // TODO
+            matrix_multiplication_fma_kernel.exec(gpu::WorkSize(tile_size / thread_work, tile_size, N / thread_work, M), as_gpu, bs_gpu, cs_gpu, M, N, K);
+
+
+            t.nextLap();
+        }
+        std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        std::cout << "GPU: " << gflops / t.lapAvg() << " GFlops" << std::endl;
+    }
+
+    std::vector<float> cs_fma(M*N, 0);
+
+    cs_gpu.readN(cs_fma.data(), M*N);
 
     // Проверяем корректность результатов
     double diff_sum = 0;
+    double diff_sum_fma = 0;
     for (int i = 0; i < M * N; ++i) {
         double a = cs[i];
         double b = cs_cpu_reference[i];
-        if (a != 0.0 && b != 0.0) {
+        if (a != 0.0 || b != 0.0) {
             double diff = fabs(a - b) / std::max(fabs(a), fabs(b));
             diff_sum += diff;
+        }
+
+        if (a != 0.0 || b != 0.0) {
+            double diff = fabs(a - b) / std::max(fabs(a), fabs(b));
+            diff_sum_fma += diff;
         }
     }
 
@@ -101,6 +127,13 @@ int main(int argc, char **argv)
     std::cout << "Average difference: " << diff_avg * 100.0 << "%" << std::endl;
     if (diff_avg > 0.01) {
         std::cerr << "Too big difference!" << std::endl;
+        return 1;
+    }
+
+    double diff_avg_fma = diff_sum_fma / (M * N);
+    std::cout << "Average difference with fma: " << diff_avg_fma * 100.0 << "%" << std::endl;
+    if (diff_avg_fma > 0.01) {
+        std::cerr << "Too big difference with fma!" << std::endl;
         return 1;
     }
 
