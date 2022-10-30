@@ -103,7 +103,9 @@ int main(int argc, char **argv)
 				unsigned int workGroupSize = 128;
 				unsigned int prefix_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
 				unsigned int reduce_work_size = (n / 2 + workGroupSize - 1) / workGroupSize * workGroupSize; 
+				std::cout << "PRE CLEANUP" << std::endl;
 				cleanup.exec(gpu::WorkSize(workGroupSize, prefix_work_size), bs_gpu);
+				std::cout << "POST CLEANUP" << std::endl;
 				as_gpu.writeN(as.data(), n);
 
 				t.restart();
