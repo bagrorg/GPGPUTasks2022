@@ -24,13 +24,13 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 
 
 
-void doPrefix(ocl::Kernel &prefix_step, ocl::Kernel &reduce_step, uint workGroupSize, uint global_work_size, uint n,
+void doPrefix(ocl::Kernel &prefix_step, ocl::Kernel &reduce_step, uint workGroupSize, uint prefix_work_size, uint reduce_work_size, uint n,
               gpu::gpu_mem_32u &as_gpu, gpu::gpu_mem_32u &bs_gpu, gpu::gpu_mem_32u &as_buffer_gpu) {
     for (uint b_st = 0; (1 << b_st) <= n; b_st++) {
-        prefix_step.exec(gpu::WorkSize(workGroupSize, global_work_size),
+        prefix_step.exec(gpu::WorkSize(workGroupSize, prefix_work_size),
                 as_gpu, bs_gpu, n, b_st);
 
-        reduce_step.exec(gpu::WorkSize(workGroupSize, global_work_size / 2),
+        reduce_step.exec(gpu::WorkSize(workGroupSize, reduce_work_size),
                 as_gpu, as_buffer_gpu, n >> (b_st + 1));
         
         std::swap(as_gpu, as_buffer_gpu);
@@ -78,6 +78,7 @@ int main(int argc, char **argv) {
     gpu::gpu_mem_32u hist_gpu;
     hist_gpu.resizeN(hists_size);
     uint hist_kernel_work = (hists_size + workGroupSize - 1) / workGroupSize * workGroupSize;
+    uint hist_reduce_kernel_work = (hists_size / 2 + workGroupSize - 1) / workGroupSize * workGroupSize;
 
     // Prefix sum data
     gpu::gpu_mem_32u p_bs_gpu, p_buffer;
@@ -106,7 +107,7 @@ int main(int argc, char **argv) {
                 count_step.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, hist_gpu, b_st, workGroupCount);
 
                 cleanup.exec(gpu::WorkSize(workGroupSize, hist_kernel_work), p_bs_gpu);        
-                doPrefix(prefix_step, prefix_reduce_step, workGroupSize, hist_kernel_work, hists_size, hist_gpu, p_bs_gpu, p_buffer);
+                doPrefix(prefix_step, prefix_reduce_step, workGroupSize, hist_kernel_work, hist_reduce_kernel_work, hists_size, hist_gpu, p_bs_gpu, p_buffer);
 
                 radix.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, bs_gpu, p_bs_gpu, b_st, workGroupCount);
 
