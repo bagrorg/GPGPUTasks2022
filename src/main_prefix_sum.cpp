@@ -100,24 +100,21 @@ int main(int argc, char **argv)
 
 			timer t;
 			for (int iter = 0; iter < benchmarkingIters; iter++) {
-				unsigned int workGroupSize = 128;
+				unsigned int workGroupSize = 256;
 				unsigned int prefix_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
 				unsigned int reduce_work_size = (n / 2 + workGroupSize - 1) / workGroupSize * workGroupSize; 
-				std::cout << "PRE CLEANUP" << std::endl;
 				cleanup.exec(gpu::WorkSize(workGroupSize, prefix_work_size), bs_gpu, n);
-				std::cout << "POST CLEANUP" << std::endl;
 				as_gpu.writeN(as.data(), n);
 
 				t.restart();
 
 				for (uint b_st = 0; (1 << b_st) <= n; b_st++) {
-					std::cout << "PREFIX STEP" << std::endl;
 					prefix_step.exec(gpu::WorkSize(workGroupSize, prefix_work_size),
 							as_gpu, bs_gpu, n, b_st);
-					std::cout << "REDUCE STEP" << std::endl;
+						
 					reduce_step.exec(gpu::WorkSize(workGroupSize, reduce_work_size),
 							as_gpu, as_buffer_gpu, n >> (b_st + 1));
-					std::cout << "SWAP STEP" << std::endl;
+							
 					std::swap(as_gpu, as_buffer_gpu);
 				}
 

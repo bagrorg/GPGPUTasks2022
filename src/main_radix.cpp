@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
         std::cout << "CPU: " << (n / 1000 / 1000) / t.lapAvg() << " millions/s" << std::endl;
     }
     
-    unsigned int workGroupSize = 128;
+    unsigned int workGroupSize = 256;
     unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
     unsigned int workGroupCount = global_work_size / workGroupSize;
 

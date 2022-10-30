@@ -3,7 +3,7 @@
 #define MASK 15                         // 0b00....01111
 
 // MUST BE >= TWO_POW_K
-#define WG_SIZE 128
+#define WG_SIZE 256
 
 #define GET_BIT(num, i) (num >> i) & 1
 
