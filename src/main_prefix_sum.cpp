@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
 			timer t;
 			for (int iter = 0; iter < benchmarkingIters; iter++) {
-				unsigned int workGroupSize = 256;
+				unsigned int workGroupSize = 128;
 				unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
 
 				cleanup.exec(gpu::WorkSize(workGroupSize, global_work_size), bs_gpu);

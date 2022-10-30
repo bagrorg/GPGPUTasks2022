@@ -1,5 +1,3 @@
-#define WG_SIZE 256
-
 #define GET_BIT(num, i) (num >> i) & 1
 
 __kernel void prefix_step(__global uint *as, __global uint *bs, uint n, uint bit) {
