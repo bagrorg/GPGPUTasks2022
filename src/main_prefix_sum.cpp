@@ -111,12 +111,13 @@ int main(int argc, char **argv)
 				t.restart();
 
 				for (uint b_st = 0; (1 << b_st) <= n; b_st++) {
+					std::cout << "PREFIX STEP" << std::endl;
 					prefix_step.exec(gpu::WorkSize(workGroupSize, prefix_work_size),
 							as_gpu, bs_gpu, n, b_st);
-
+					std::cout << "REDUCE STEP" << std::endl;
 					reduce_step.exec(gpu::WorkSize(workGroupSize, reduce_work_size),
 							as_gpu, as_buffer_gpu, n >> (b_st + 1));
-					
+					std::cout << "SWAP STEP" << std::endl;
 					std::swap(as_gpu, as_buffer_gpu);
 				}
 
