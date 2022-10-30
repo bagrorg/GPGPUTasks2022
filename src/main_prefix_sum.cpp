@@ -20,6 +20,7 @@ void raiseFail(const T &a, const T &b, std::string message, std::string filename
 #define EXPECT_THE_SAME(a, b, message) raiseFail(a, b, message, __FILE__, __LINE__)
 
 
+
 int main(int argc, char **argv)
 {
 	int benchmarkingIters = 10;
@@ -77,7 +78,56 @@ int main(int argc, char **argv)
 		}
 
 		{
-			// TODO: implement on OpenCL
+			std::vector<uint> result(n);
+			gpu::Device device = gpu::chooseGPUDevice(argc, argv);
+
+			gpu::Context context;
+			context.init(device.device_id_opencl);
+			context.activate();
+
+			gpu::gpu_mem_32u as_gpu, bs_gpu, as_buffer_gpu;
+			as_gpu.resizeN(n);
+			bs_gpu.resizeN(n);
+			as_buffer_gpu.resizeN(n);
+
+			ocl::Kernel prefix_step(prefix_sum_kernel, prefix_sum_kernel_length, "prefix_step");
+			ocl::Kernel reduce_step(prefix_sum_kernel, prefix_sum_kernel_length, "reduce_step");
+			ocl::Kernel cleanup(prefix_sum_kernel, prefix_sum_kernel_length, "cleanup");
+			prefix_step.compile();
+			reduce_step.compile();
+			cleanup.compile();
+
+
+			timer t;
+			for (int iter = 0; iter < benchmarkingIters; iter++) {
+				unsigned int workGroupSize = 256;
+				unsigned int global_work_size = (n + workGroupSize - 1) / workGroupSize * workGroupSize;
+
+				cleanup.exec(gpu::WorkSize(workGroupSize, global_work_size), bs_gpu);
+				as_gpu.writeN(as.data(), n);
+
+				t.restart();
+
+				for (uint b_st = 0; (1 << b_st) <= n; b_st++) {
+					prefix_step.exec(gpu::WorkSize(workGroupSize, global_work_size),
+							as_gpu, bs_gpu, n, b_st);
+
+					reduce_step.exec(gpu::WorkSize(workGroupSize, global_work_size / 2),
+							as_gpu, as_buffer_gpu, n >> (b_st + 1));
+					
+					std::swap(as_gpu, as_buffer_gpu);
+				}
+
+				t.nextLap();
+			}
+			std::cout << "GPU: " << t.lapAvg() << "+-" << t.lapStd() << " s" << std::endl;
+        	std::cout << "GPU: " << (n / 1000 / 1000) / t.lapAvg() << " millions/s" << std::endl;
+			bs_gpu.readN(result.data(), n);
+
+			// Проверяем корректность результатов
+			for (int i = 0; i < n; ++i) {
+				EXPECT_THE_SAME(result[i], reference_result[i], "GPU results should be equal to CPU results!");
+			}
 		}
 	}
 }
