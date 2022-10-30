@@ -19,6 +19,7 @@ __kernel void reduce_step(__global uint *as, __global uint *new_as, uint n) {
     new_as[th_id] = as[2 * th_id] + as[2 * th_id + 1];
 }
 
-__kernel void cleanup(__global uint *vec) {
-    vec[get_global_id(0)] = 0;
+__kernel void cleanup(__global uint *vec, uint n) {
+    if (get_global_id(0) < n)
+        vec[get_global_id(0)] = 0;
 }

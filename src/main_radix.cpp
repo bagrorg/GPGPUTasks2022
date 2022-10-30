@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
             for (uint b_st = 0; b_st < sizeof(uint) * CHAR_BIT; b_st += 4) {
                 count_step.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, hist_gpu, b_st, workGroupCount);
 
-                cleanup.exec(gpu::WorkSize(workGroupSize, hist_kernel_work), p_bs_gpu);        
+                cleanup.exec(gpu::WorkSize(workGroupSize, hist_kernel_work), p_bs_gpu, hists_size);        
                 doPrefix(prefix_step, prefix_reduce_step, workGroupSize, hist_kernel_work, hist_reduce_kernel_work, hists_size, hist_gpu, p_bs_gpu, p_buffer);
 
                 radix.exec(gpu::WorkSize(workGroupSize, global_work_size), as_gpu, bs_gpu, p_bs_gpu, b_st, workGroupCount);
